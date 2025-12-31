@@ -1,4 +1,4 @@
-# kubernetes_wordpress (tai333)
+# kubernetes_wordpress
 
 WordPress running on Kubernetes (Docker Desktop local cluster).
 
