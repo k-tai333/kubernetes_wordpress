@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wiki-app
+  namespace: dev-tai333-k8s
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wiki-app
+  template:
+    metadata:
+      labels:
+        app: wiki-app
+    spec:
+      securityContext:
+        fsGroup: 1000
+
+      initContainers:
+        - name: init-wordpress
+          image: wiki-app:latest
+          imagePullPolicy: Never
+          command: ["sh", "-c"]
+          args:
+            - |
+              cp -a /usr/src/wordpress/. /var/www/dev-k8s.tai333.cloud/
+          volumeMounts:
+            - name: wordpress-code
+              mountPath: /var/www/dev-k8s.tai333.cloud
+
+      containers:
+        - name: app
+          image: wiki-app:latest
+          imagePullPolicy: Never
+          command: ["php-fpm", "-F"]
+          env:
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+            - name: WORDPRESS_DB_HOST
+              value: wiki-mysql:3306
+          volumeMounts:
+            - name: wordpress-code
+              mountPath: /var/www/dev-k8s.tai333.cloud
+            - name: php-fpm-sock
+              mountPath: /var/run/php-fpm
+
+        - name: nginx
+          image: wiki-nginx:latest
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: wordpress-code
+              mountPath: /var/www/dev-k8s.tai333.cloud
+            - name: php-fpm-sock
+              mountPath: /var/run/php-fpm
+
+      volumes:
+        - name: wordpress-code
+          emptyDir: {}
+        - name: php-fpm-sock
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wiki-app
+  namespace: dev-tai333-k8s
+spec:
+  selector:
+    app: wiki-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP

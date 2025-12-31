@@ -1,0 +1,7 @@
+.DS_Store
+k8s/secrets.yaml
+docker/dev/nginx/certs/
+*.pem
+*.key
+**/db_data/
+**/data/
