@@ -1,0 +1,2 @@
+# kubernetes_wordpress
+kubernetes上にwordpress環境を構築
